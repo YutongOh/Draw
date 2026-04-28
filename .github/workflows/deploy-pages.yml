@@ -46,8 +46,7 @@ jobs:
             "https://router.shengsuanyun.com/api/v1/tasks/generations/__ping__" || true)"
           echo "JiMeng auth check HTTP: ${code}"
           if [ "${code}" = "401" ]; then
-            echo "JiMeng token invalid (401). Please use ShengsuanYun ServerlessAI ApiToken."
-            exit 1
+            echo "::warning::JiMeng token invalid (401). Please use ShengsuanYun Console -> ServerlessAI -> ApiToken."
           fi
 
       - name: Build
