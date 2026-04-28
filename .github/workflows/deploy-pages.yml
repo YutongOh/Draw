@@ -35,6 +35,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify JiMeng token (demo)
+        if: ${{ secrets.JIMENG_API_KEY != '' }}
+        env:
+          JIMENG_API_KEY: ${{ secrets.JIMENG_API_KEY }}
+        run: |
+          set -e
+          code="$(curl -s -o /dev/null -w "%{http_code}" -L \
+            -H "Authorization: Bearer ${JIMENG_API_KEY}" \
+            "https://router.shengsuanyun.com/api/v1/tasks/generations/__ping__" || true)"
+          echo "JiMeng auth check HTTP: ${code}"
+          if [ "${code}" = "401" ]; then
+            echo "JiMeng token invalid (401). Please use ShengsuanYun ServerlessAI ApiToken."
+            exit 1
+          fi
+
       - name: Build
         run: npm run build
         env:
