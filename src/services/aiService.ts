@@ -82,7 +82,9 @@ export async function refineDrawing(base64Image: string, prompt?: string) {
     // Demo fallback (INSECURE): call JiMeng directly from browser using a build-time key.
     // This will expose the key in the built JS bundle. Use only for demos.
     const apiKey = import.meta.env.VITE_JIMENG_API_KEY;
-    if (!apiKey) return null;
+    if (!apiKey) {
+      throw new Error('缺少 VITE_JIMENG_API_KEY（GitHub Actions Secret: JIMENG_API_KEY 未注入或为空）');
+    }
 
     const routerBase = 'https://router.shengsuanyun.com/api';
 
