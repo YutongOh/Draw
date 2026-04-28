@@ -66,8 +66,17 @@ export function IPCharacter({ onClick, disabled }: IPCharacterProps) {
           alt="IP Character"
           className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl transition-opacity duration-500"
           onError={(e) => {
-            // Fallback if image is not found
-            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=dino${currentAction}&backgroundColor=b6e3f4`;
+            const img = e.target as HTMLImageElement;
+            const currentSrc = img.getAttribute('src') || '';
+
+            // Self-heal: if a legacy absolute path like "/dino-action-1.png" is used, retry with BASE_URL prefix.
+            if (currentSrc.startsWith('/') && !currentSrc.startsWith(baseUrl)) {
+              img.src = `${baseUrl}${currentSrc.replace(/^\/+/, '')}`;
+              return;
+            }
+
+            // Final fallback if image is not found
+            img.src = `https://api.dicebear.com/7.x/bottts/svg?seed=dino${currentAction}&backgroundColor=b6e3f4`;
           }}
         />
       </div>
