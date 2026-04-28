@@ -25,6 +25,31 @@ After enabling GitHub Pages in your repo settings, the site will be available at
 3. Run the app:
    `npm run dev`
 
+## JiMeng (即梦) 智能美化（Cloudflare Worker 代理）
+
+GitHub Pages 是纯静态站点，**不能安全地在前端直连 API Key**。因此“智能美化”通过一个代理服务调用即梦图生图接口，并一次返回 **3 张**（重绘程度：低/中/高）。
+
+### 部署代理（Cloudflare Worker）
+
+在仓库根目录执行：
+
+```bash
+cd workers/jimeng-proxy
+npm install
+wrangler secret put JIMENG_API_KEY
+wrangler deploy
+```
+
+### 配置前端使用代理
+
+在仓库根目录创建 `.env.local`：
+
+```bash
+VITE_JIMENG_PROXY_URL="https://<your-worker>.workers.dev"
+```
+
+然后 `npm run dev` 或重新构建发布即可。
+
 ## Enable Pages (one-time)
 
 1. Go to your repo **Settings** → **Pages**

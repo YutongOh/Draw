@@ -7,3 +7,7 @@ coverage/
 *.tsbuildinfo
 .env*
 !.env.example
+
+# Cloudflare Workers
+**/.wrangler/
+**/.dev.vars

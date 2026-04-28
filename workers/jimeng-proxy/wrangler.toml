@@ -1,0 +1,7 @@
+name = "jimeng-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-04-28"
+
+[vars]
+# Do NOT put your key here. Use `wrangler secret put JIMENG_API_KEY`.
+SHENGSUAN_ROUTER_BASE_URL = "https://router.shengsuanyun.com/api"

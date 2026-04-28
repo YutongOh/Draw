@@ -57,59 +57,27 @@ export async function speakEncouragement(text: string) {
 
 export async function refineDrawing(base64Image: string, prompt?: string) {
   try {
-    const ai = getAiClient();
-    if (!ai) return null;
-    const levels = [
-      {
-        name: "轻微优化",
-        instruction: `Keep the child's original lines but clean them up into smooth, bold cartoon outlines. Use flat, vibrant colors. It should look like a neat, professional version of the child's own cartoon sketch, preserving their unique character shapes. ${prompt || ''}`
-      },
-      {
-        name: "创意增强",
-        instruction: `Analyze the child's sketch to identify the subject (e.g., a cat, a house, a person). Transform it into a cute, professional children's cartoon character or scene. Add simple shading, friendly expressions, and charming details. It should look like a character from a high-quality animated show for kids. ${prompt || ''}`
-      },
-      {
-        name: "完美蜕变",
-        instruction: `Fully realize the child's idea as a high-quality, polished children's book illustration. Use the sketch as a strong reference for composition and subject, but render it with beautiful textures, soft lighting, and a very professional cartoon aesthetic. It should be a 'masterpiece' version of their cartoon idea, full of life and magic. ${prompt || ''}`
-      }
-    ];
+    const proxyBase = import.meta.env.VITE_JIMENG_PROXY_URL ?? import.meta.env.VITE_AI_PROXY_URL;
+    if (!proxyBase) return null;
 
-    const promises = levels.map(level => 
-      ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: base64Image.split(',')[1],
-                mimeType: 'image/png',
-              },
-            },
-            {
-              text: `This is a drawing by a child. Please analyze the content and shapes in this sketch and refine it into a beautiful children's cartoon drawing. 
-              The style MUST be child-friendly, cute, and clean with bold outlines and vibrant colors. 
-              Identify what the child is trying to draw and find a similar, high-quality cartoon representation.
-              Level of refinement: ${level.instruction}
-              Return only the enhanced image.`,
-            },
-          ],
-        },
-      })
-    );
+    const res = await fetch(`${proxyBase.replace(/\/+$/, '')}/refine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageDataUrl: base64Image,
+        prompt: prompt || '',
+      }),
+    });
 
-    const responses = await Promise.all(promises);
-    const results: string[] = [];
-
-    for (const response of responses) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          results.push(`data:image/png;base64,${part.inlineData.data}`);
-          break;
-        }
-      }
+    if (!res.ok) {
+      console.error('JiMeng refine HTTP error', res.status, await res.text().catch(() => ''));
+      return null;
     }
 
-    return results.length > 0 ? results : null;
+    const data = await res.json().catch(() => null) as null | { results?: string[] };
+    const results = data?.results;
+    if (!Array.isArray(results) || results.length === 0) return null;
+    return results;
   } catch (error) {
     console.error("AI Refinement Error:", error);
     return null;
