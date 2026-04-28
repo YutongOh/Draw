@@ -50,6 +50,12 @@ VITE_JIMENG_PROXY_URL="https://<your-worker>.workers.dev"
 
 然后 `npm run dev` 或重新构建发布即可。
 
+### GitHub Pages（Actions 构建）需要设置 Secret
+
+因为 Pages 是在 GitHub Actions 里构建的，请在仓库设置里新增一个 Secret：
+
+- `JIMENG_PROXY_URL`: 你的 Worker 地址（例如 `https://<your-worker>.workers.dev`）
+
 ## Enable Pages (one-time)
 
 1. Go to your repo **Settings** → **Pages**

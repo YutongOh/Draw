@@ -40,6 +40,8 @@ jobs:
         env:
           # Ensures correct asset paths when deployed under https://<user>.github.io/Draw/
           BASE_PATH: /Draw/
+          # JiMeng proxy base URL (set in repo Settings -> Secrets and variables -> Actions)
+          VITE_JIMENG_PROXY_URL: ${{ secrets.JIMENG_PROXY_URL }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
