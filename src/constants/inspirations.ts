@@ -3,7 +3,8 @@ export interface InspirationItem {
   title: string;
 }
 
-export const INSPIRATION_SPRITE_URL = '/inspirations/sprite.png'; // Not really used if we use individual images
+const baseUrl = import.meta.env.BASE_URL;
+export const INSPIRATION_SPRITE_URL = `${baseUrl}inspirations/sprite.png`; // Not really used if we use individual images
 
 export const PRESET_INSPIRATIONS: InspirationItem[] = [
   { id: 2, title: '小猫' },

@@ -2,48 +2,51 @@ import { Drawing } from '../types';
 
 const now = Date.now();
 const dayMs = 24 * 60 * 60 * 1000;
+const baseUrl = import.meta.env.BASE_URL;
+const inspirationUrl = (n: number) =>
+  `${baseUrl}inspirations/inspiration-${n.toString().padStart(2, '0')}.png`;
 
 export const PRESET_DRAWINGS: Drawing[] = [
   {
     id: 'preset-1',
     timestamp: now - 1 * dayMs,
-    originalImage: '/inspirations/inspiration-01.png',
-    refinedImage: '/inspirations/inspiration-01.png',
+    originalImage: inspirationUrl(1),
+    refinedImage: inspirationUrl(1),
     prompt: '一幅充满想象力的儿童画'
   },
   {
     id: 'preset-2',
     timestamp: now - 2 * dayMs,
-    originalImage: '/inspirations/inspiration-05.png',
-    refinedImage: '/inspirations/inspiration-05.png',
+    originalImage: inspirationUrl(5),
+    refinedImage: inspirationUrl(5),
     prompt: '一幅充满想象力的儿童画'
   },
   {
     id: 'preset-3',
     timestamp: now - 3 * dayMs,
-    originalImage: '/inspirations/inspiration-10.png',
-    refinedImage: '/inspirations/inspiration-10.png',
+    originalImage: inspirationUrl(10),
+    refinedImage: inspirationUrl(10),
     prompt: '一幅充满想象力的儿童画'
   },
   {
     id: 'preset-4',
     timestamp: now - 4 * dayMs,
-    originalImage: '/inspirations/inspiration-15.png',
-    refinedImage: '/inspirations/inspiration-15.png',
+    originalImage: inspirationUrl(15),
+    refinedImage: inspirationUrl(15),
     prompt: '一幅充满想象力的儿童画'
   },
   {
     id: 'preset-5',
     timestamp: now - 5 * dayMs,
-    originalImage: '/inspirations/inspiration-20.png',
-    refinedImage: '/inspirations/inspiration-20.png',
+    originalImage: inspirationUrl(20),
+    refinedImage: inspirationUrl(20),
     prompt: '一幅充满想象力的儿童画'
   },
   {
     id: 'preset-6',
     timestamp: now - 6 * dayMs,
-    originalImage: '/inspirations/inspiration-25.png',
-    refinedImage: '/inspirations/inspiration-25.png',
+    originalImage: inspirationUrl(25),
+    refinedImage: inspirationUrl(25),
     prompt: '一幅充满想象力的儿童画'
   }
 ];
