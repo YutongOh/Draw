@@ -8,15 +8,49 @@ import { ParentDashboard } from './components/ParentDashboard';
 import { AppState, AgeGroup, Drawing } from './types';
 import { PRESET_DRAWINGS } from './constants/presets';
 
+function migrateAssetUrl(url: unknown): string | undefined {
+  if (typeof url !== 'string') return undefined;
+  if (!url.startsWith('/')) return url; // already relative/base-prefixed, data:, http(s), etc.
+  if (url.startsWith('//')) return url;
+  const baseUrl = import.meta.env.BASE_URL;
+  return `${baseUrl}${url.replace(/^\/+/, '')}`;
+}
+
+function migrateDrawing(d: unknown): Drawing | null {
+  if (!d || typeof d !== 'object') return null;
+  const anyD = d as Partial<Drawing>;
+  if (typeof anyD.id !== 'string' || typeof anyD.timestamp !== 'number') return null;
+  const originalImage = migrateAssetUrl(anyD.originalImage) ?? anyD.originalImage;
+  if (typeof originalImage !== 'string') return null;
+  const refinedImage = migrateAssetUrl(anyD.refinedImage) ?? anyD.refinedImage;
+  return {
+    id: anyD.id,
+    timestamp: anyD.timestamp,
+    originalImage,
+    refinedImage: typeof refinedImage === 'string' ? refinedImage : undefined,
+    prompt: typeof anyD.prompt === 'string' ? anyD.prompt : undefined,
+  };
+}
+
 export default function App() {
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem('dinodraw_state');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (!parsed.history || parsed.history.length === 0) {
-          parsed.history = PRESET_DRAWINGS;
+        if (!parsed.history || parsed.history.length === 0) parsed.history = PRESET_DRAWINGS;
+
+        // Migrate any legacy absolute public-asset URLs (e.g. "/inspirations/...") to BASE_URL-prefixed paths
+        if (Array.isArray(parsed.history)) {
+          parsed.history = parsed.history
+            .map(migrateDrawing)
+            .filter(Boolean);
+          if (parsed.history.length === 0) parsed.history = PRESET_DRAWINGS;
         }
+        if (parsed.currentDrawing) {
+          parsed.currentDrawing = migrateDrawing(parsed.currentDrawing);
+        }
+
         return { ...parsed, view: 'age-selection', ageGroup: null };
       } catch (e) {
         console.error("Failed to load state", e);
