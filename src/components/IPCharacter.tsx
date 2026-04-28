@@ -9,6 +9,7 @@ interface IPCharacterProps {
 export function IPCharacter({ onClick, disabled }: IPCharacterProps) {
   const [currentAction, setCurrentAction] = useState<1 | 2>(1);
   const [showBubble, setShowBubble] = useState(true);
+  const baseUrl = import.meta.env.BASE_URL;
 
   useEffect(() => {
     // Switch action every 1 minute (60000 ms)
@@ -61,7 +62,7 @@ export function IPCharacter({ onClick, disabled }: IPCharacterProps) {
       <div className="relative w-48 h-48 md:w-60 md:h-60">
         <img
           key={currentAction}
-          src={`/dino-action-${currentAction}.png`}
+          src={`${baseUrl}dino-action-${currentAction}.png`}
           alt="IP Character"
           className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl transition-opacity duration-500"
           onError={(e) => {

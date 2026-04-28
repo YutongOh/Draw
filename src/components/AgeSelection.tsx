@@ -12,6 +12,7 @@ interface AgeSelectionProps {
 }
 
 export const AgeSelection: React.FC<AgeSelectionProps> = ({ onSelect, onGallery, onParentMode, theme, onToggleTheme }) => {
+  const baseUrl = import.meta.env.BASE_URL;
   return (
     <div className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 md:p-8 select-none relative" style={{ background: 'linear-gradient(to bottom, #C6FFFF 10%, #E7FFFE 50%)' }}>
       
@@ -48,7 +49,7 @@ export const AgeSelection: React.FC<AgeSelectionProps> = ({ onSelect, onGallery,
           <div className="mb-4 lg:mb-8 relative w-32 h-32 lg:w-48 lg:h-48 flex items-center justify-center">
             {/* Basic Drawing Image */}
             <img 
-              src="/mode-basic.png" 
+              src={`${baseUrl}mode-basic.png`}
               className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" 
               alt="自由涂画"
               referrerPolicy="no-referrer"
@@ -69,7 +70,7 @@ export const AgeSelection: React.FC<AgeSelectionProps> = ({ onSelect, onGallery,
           <div className="mb-4 lg:mb-8 relative w-32 h-32 lg:w-48 lg:h-48 flex items-center justify-center">
             {/* Advanced Drawing Image */}
             <img 
-              src="/mode-advanced.png" 
+              src={`${baseUrl}mode-advanced.png`}
               className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" 
               alt="引导绘画"
               referrerPolicy="no-referrer"
@@ -90,7 +91,7 @@ export const AgeSelection: React.FC<AgeSelectionProps> = ({ onSelect, onGallery,
           <div className="mb-4 lg:mb-8 relative w-32 h-32 lg:w-48 lg:h-48 flex items-center justify-center">
             {/* Memory Album Image */}
             <img 
-              src="/feature-album.png" 
+              src={`${baseUrl}feature-album.png`}
               className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 rotate-[-5deg] group-hover:rotate-0" 
               alt="回忆画册"
               referrerPolicy="no-referrer"

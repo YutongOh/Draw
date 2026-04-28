@@ -40,6 +40,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
   onSave 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const baseUrl = import.meta.env.BASE_URL;
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#4ade80');
   const [brushSize, setBrushSize] = useState(8);
@@ -61,7 +62,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
   const hasInspiration = ageGroup === '4-7';
   const hasPrint = true; // Available for all age groups
 
-  const getInspirationUrl = (item: InspirationItem) => `/inspirations/inspiration-${item.id.toString().padStart(2, '0')}.png`;
+  const getInspirationUrl = (item: InspirationItem) => `${baseUrl}inspirations/inspiration-${item.id.toString().padStart(2, '0')}.png`;
 
   useEffect(() => {
     if (selectedInspiration) {
