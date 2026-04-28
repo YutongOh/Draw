@@ -42,6 +42,8 @@ jobs:
           BASE_PATH: /Draw/
           # JiMeng proxy base URL (set in repo Settings -> Secrets and variables -> Actions)
           VITE_JIMENG_PROXY_URL: ${{ secrets.JIMENG_PROXY_URL }}
+          # Demo only: direct browser key (WILL be exposed in built JS)
+          VITE_JIMENG_API_KEY: ${{ secrets.JIMENG_API_KEY }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4

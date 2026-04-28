@@ -58,26 +58,116 @@ export async function speakEncouragement(text: string) {
 export async function refineDrawing(base64Image: string, prompt?: string) {
   try {
     const proxyBase = import.meta.env.VITE_JIMENG_PROXY_URL ?? import.meta.env.VITE_AI_PROXY_URL;
-    if (!proxyBase) return null;
+    if (proxyBase) {
+      const res = await fetch(`${proxyBase.replace(/\/+$/, '')}/refine`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageDataUrl: base64Image,
+          prompt: prompt || '',
+        }),
+      });
 
-    const res = await fetch(`${proxyBase.replace(/\/+$/, '')}/refine`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imageDataUrl: base64Image,
-        prompt: prompt || '',
-      }),
-    });
+      if (!res.ok) {
+        console.error('JiMeng refine proxy HTTP error', res.status, await res.text().catch(() => ''));
+        return null;
+      }
 
-    if (!res.ok) {
-      console.error('JiMeng refine HTTP error', res.status, await res.text().catch(() => ''));
-      return null;
+      const data = (await res.json().catch(() => null)) as null | { results?: string[] };
+      const results = data?.results;
+      if (!Array.isArray(results) || results.length === 0) return null;
+      return results;
     }
 
-    const data = await res.json().catch(() => null) as null | { results?: string[] };
-    const results = data?.results;
-    if (!Array.isArray(results) || results.length === 0) return null;
-    return results;
+    // Demo fallback (INSECURE): call JiMeng directly from browser using a build-time key.
+    // This will expose the key in the built JS bundle. Use only for demos.
+    const apiKey = import.meta.env.VITE_JIMENG_API_KEY;
+    if (!apiKey) return null;
+
+    const routerBase = 'https://router.shengsuanyun.com/api';
+
+    const isDataUrl = (s: string) => /^data:image\/(png|jpeg);base64,/.test(s);
+    if (!isDataUrl(base64Image)) return null;
+
+    const promptForLevel = (level: 'low' | 'mid' | 'high', extra: string) => {
+      const base =
+        '这是一幅儿童绘画。请在保留原始主体和构图的前提下，生成更干净、更可爱的儿童插画效果：线条更流畅，颜色更明亮，细节更友好。';
+      const levelText =
+        level === 'low'
+          ? '重绘程度：低。尽量保留孩子原始线条，只做干净化与轻微上色增强。'
+          : level === 'mid'
+            ? '重绘程度：中。保留主体与轮廓，但可以补充合理细节、阴影与更完整的配色。'
+            : '重绘程度：高。把孩子的想法完整实现成高质量绘本插画，但仍要遵循原画构图与主体。';
+      const extraText = extra?.trim() ? `额外要求：${extra.trim()}` : '';
+      return [base, levelText, extraText].filter(Boolean).join('\n');
+    };
+
+    const sleep = async (ms: number) => await new Promise((r) => setTimeout(r, ms));
+
+    const createTask = async (p: { prompt: string; scale: number }) => {
+      const res = await fetch(`${routerBase}/v1/tasks/generations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'bytedance/jimeng_i2i_v30',
+          binary_data_base64: [base64Image],
+          prompt: p.prompt,
+          scale: p.scale,
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`create task failed: ${res.status} ${text.slice(0, 300)}`);
+      const json = JSON.parse(text) as any;
+      const requestId = json?.data?.request_id as string | undefined;
+      if (!requestId) throw new Error('create task missing request_id');
+      return requestId;
+    };
+
+    const pollTask = async (requestId: string) => {
+      const started = Date.now();
+      const timeoutMs = 120_000;
+      while (Date.now() - started < timeoutMs) {
+        const res = await fetch(`${routerBase}/v1/tasks/generations/${encodeURIComponent(requestId)}`, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        const text = await res.text();
+        if (!res.ok) throw new Error(`poll task failed: ${res.status} ${text.slice(0, 300)}`);
+        const json = JSON.parse(text) as any;
+        const status = json?.data?.status as string | undefined;
+        const urls = json?.data?.data?.file_urls as string[] | undefined;
+        const failReason = json?.data?.fail_reason as string | undefined;
+        if (status === 'COMPLETED') {
+          if (Array.isArray(urls) && urls[0]) return urls[0] as string;
+          throw new Error('task completed but missing file_urls');
+        }
+        if (status === 'FAILED' || status === 'CANCELLED' || status === 'TIMEOUT') {
+          throw new Error(`task ${status}${failReason ? `: ${failReason}` : ''}`);
+        }
+        await sleep(1200);
+      }
+      throw new Error('task polling timeout');
+    };
+
+    const specs: Array<{ level: 'low' | 'mid' | 'high'; scale: number }> = [
+      { level: 'low', scale: 0.55 },
+      { level: 'mid', scale: 0.75 },
+      { level: 'high', scale: 0.95 },
+    ];
+
+    const results = await Promise.all(
+      specs.map(async (s) => {
+        const requestId = await createTask({
+          prompt: promptForLevel(s.level, prompt || ''),
+          scale: s.scale,
+        });
+        return await pollTask(requestId);
+      }),
+    );
+
+    return results.length ? results : null;
   } catch (error) {
     console.error("AI Refinement Error:", error);
     return null;

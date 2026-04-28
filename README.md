@@ -56,6 +56,16 @@ VITE_JIMENG_PROXY_URL="https://<your-worker>.workers.dev"
 
 - `JIMENG_PROXY_URL`: 你的 Worker 地址（例如 `https://<your-worker>.workers.dev`）
 
+### Demo 最简方案（不推荐）：直接在前端使用 Key
+
+如果你只是做 demo，不想部署 Worker，可以在 GitHub Secrets 里新增：
+
+- `JIMENG_API_KEY`: 你的即梦 Key
+
+工作流会把它注入为 `VITE_JIMENG_API_KEY`，前端将直接调用即梦接口并返回 3 张效果图。
+
+重要：**这会把 Key 打进前端 JS 里，任何人都能拿到。仅限 demo。**
+
 ## Enable Pages (one-time)
 
 1. Go to your repo **Settings** → **Pages**
