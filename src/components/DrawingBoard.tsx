@@ -47,6 +47,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
   const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiResults, setAiResults] = useState<string[]>([]);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [showInspiration, setShowInspiration] = useState(false);
   const [inspirations, setInspirations] = useState<InspirationItem[]>([]);
   const [selectedInspiration, setSelectedInspiration] = useState<InspirationItem | null>(null);
@@ -139,18 +140,26 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
     }
   };
 
-  const getCanvasDataURL = () => {
+  const getCanvasDataURL = (maxSide = 1024) => {
     const canvas = canvasRef.current;
     if (!canvas) return '';
+    const srcW = canvas.width;
+    const srcH = canvas.height;
+
+    // Scale down the exported image to keep payload size reasonable for APIs.
+    const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+    const outW = Math.max(1, Math.round(srcW * scale));
+    const outH = Math.max(1, Math.round(srcH * scale));
+
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
+    tempCanvas.width = outW;
+    tempCanvas.height = outH;
     const tempCtx = tempCanvas.getContext('2d');
     if (tempCtx) {
       const isDark = document.querySelector('.dark') !== null;
       tempCtx.fillStyle = isDark ? '#18181b' : '#ffffff';
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-      tempCtx.drawImage(canvas, 0, 0);
+      tempCtx.drawImage(canvas, 0, 0, srcW, srcH, 0, 0, outW, outH);
       return tempCanvas.toDataURL('image/png');
     }
     return '';
@@ -196,14 +205,22 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    setAiError(null);
     setIsProcessing(true);
-    const base64 = getCanvasDataURL();
-    const results = await refineDrawing(base64, "a colorful drawing");
-    
-    if (results && results.length > 0) {
-      setAiResults(results);
+    try {
+      const base64 = getCanvasDataURL(1024);
+      const results = await refineDrawing(base64, "a colorful drawing");
+      if (results && results.length > 0) {
+        setAiResults(results);
+      } else {
+        setAiError('智能美化暂时失败：未获得结果。可能是图片过大/接口限流/Key 无效。');
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setAiError(`智能美化失败：${msg}`);
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const selectAiResult = (img: string) => {
@@ -531,20 +548,48 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
             </AnimatePresence>
 
             {/* Processing State */}
-            {isProcessing && (
+            {(isProcessing || aiError) && (
               <div className="absolute inset-0 bg-white/60 backdrop-blur-xl flex flex-col items-center justify-center z-40">
-                <div className="w-32 h-32 relative mb-8">
-                   <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-0 border-4 border-dino-green border-t-transparent rounded-full"
-                   />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                     <Wand2 className="w-12 h-12 text-dino-green animate-pulse" />
-                   </div>
-                </div>
-                <h4 className="text-2xl font-display font-bold mb-2">魔法正在发生...</h4>
-                <p className="text-zinc-500 animate-pulse">迪诺正在为你精心准备惊喜</p>
+                {isProcessing ? (
+                  <>
+                    <div className="w-32 h-32 relative mb-8">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 border-4 border-dino-green border-t-transparent rounded-full"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Wand2 className="w-12 h-12 text-dino-green animate-pulse" />
+                      </div>
+                    </div>
+                    <h4 className="text-2xl font-display font-bold mb-2">魔法正在发生...</h4>
+                    <p className="text-zinc-500 animate-pulse">迪诺正在为你精心准备惊喜</p>
+                  </>
+                ) : (
+                  <div className="max-w-lg w-full px-6">
+                    <div className="bg-white/90 border border-zinc-200 rounded-3xl p-6 shadow-2xl text-center">
+                      <h4 className="text-xl font-display font-bold mb-3">没有变出来</h4>
+                      <p className="text-zinc-600 text-sm mb-5 break-words">{aiError}</p>
+                      <div className="flex justify-center gap-3">
+                        <button
+                          onClick={() => setAiError(null)}
+                          className="px-6 py-3 rounded-2xl bg-white text-zinc-700 hover:bg-zinc-100 transition-all border border-zinc-200 font-bold"
+                        >
+                          知道了
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAiError(null);
+                            handleMagic();
+                          }}
+                          className="px-6 py-3 rounded-2xl bg-dino-green text-black hover:opacity-90 transition-all border border-dino-green font-black"
+                        >
+                          重试
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
