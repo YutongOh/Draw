@@ -119,7 +119,16 @@ export async function refineDrawing(base64Image: string, prompt?: string) {
         }),
       });
       const text = await res.text();
-      if (!res.ok) throw new Error(`create task failed: ${res.status} ${text.slice(0, 300)}`);
+      if (!res.ok) {
+        // Try to surface the provider's actual error message.
+        try {
+          const j = JSON.parse(text) as any;
+          const msg = j?.error?.message || j?.message || text;
+          throw new Error(`${res.status} ${String(msg).slice(0, 300)}`);
+        } catch {
+          throw new Error(`create task failed: ${res.status} ${text.slice(0, 300)}`);
+        }
+      }
       const json = JSON.parse(text) as any;
       const requestId = json?.data?.request_id as string | undefined;
       if (!requestId) throw new Error('create task missing request_id');
@@ -134,7 +143,15 @@ export async function refineDrawing(base64Image: string, prompt?: string) {
           headers: { Authorization: `Bearer ${apiKey}` },
         });
         const text = await res.text();
-        if (!res.ok) throw new Error(`poll task failed: ${res.status} ${text.slice(0, 300)}`);
+        if (!res.ok) {
+          try {
+            const j = JSON.parse(text) as any;
+            const msg = j?.error?.message || j?.message || text;
+            throw new Error(`${res.status} ${String(msg).slice(0, 300)}`);
+          } catch {
+            throw new Error(`poll task failed: ${res.status} ${text.slice(0, 300)}`);
+          }
+        }
         const json = JSON.parse(text) as any;
         const status = json?.data?.status as string | undefined;
         const urls = json?.data?.data?.file_urls as string[] | undefined;
