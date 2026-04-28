@@ -1,10 +1,19 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { PRESET_INSPIRATIONS, InspirationItem } from "../constants/inspirations";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let _ai: GoogleGenAI | null = null;
+function getAiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  if (_ai) return _ai;
+  _ai = new GoogleGenAI({ apiKey });
+  return _ai;
+}
 
 export async function speakEncouragement(text: string) {
   try {
+    const ai = getAiClient();
+    if (!ai) return;
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
       contents: [{ parts: [{ text: `用温柔、鼓励、充满童趣的语气说：${text}` }] }],
@@ -48,6 +57,8 @@ export async function speakEncouragement(text: string) {
 
 export async function refineDrawing(base64Image: string, prompt?: string) {
   try {
+    const ai = getAiClient();
+    if (!ai) return null;
     const levels = [
       {
         name: "轻微优化",
