@@ -11,3 +11,8 @@ coverage/
 # Cloudflare Workers
 **/.wrangler/
 **/.dev.vars
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
