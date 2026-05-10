@@ -38,14 +38,14 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (!parsed.history || parsed.history.length === 0) parsed.history = PRESET_DRAWINGS;
+        // Only backfill presets when history is missing (legacy saves). Empty array means the user cleared the gallery.
+        if (!Array.isArray(parsed.history)) parsed.history = [...PRESET_DRAWINGS];
 
         // Migrate any legacy absolute public-asset URLs (e.g. "/inspirations/...") to BASE_URL-prefixed paths
         if (Array.isArray(parsed.history)) {
           parsed.history = parsed.history
             .map(migrateDrawing)
             .filter(Boolean);
-          if (parsed.history.length === 0) parsed.history = PRESET_DRAWINGS;
         }
         if (parsed.currentDrawing) {
           parsed.currentDrawing = migrateDrawing(parsed.currentDrawing);
@@ -100,6 +100,14 @@ export default function App() {
     }));
   };
 
+  const handleBulkDelete = (ids: string[]) => {
+    const idSet = new Set(ids);
+    setState(prev => ({
+      ...prev,
+      history: prev.history.filter(d => !idSet.has(d.id))
+    }));
+  };
+
   const handlePrint = (drawing: Drawing) => {
     setCurrentPrint(drawing);
     setState(prev => ({ ...prev, view: 'printing' }));
@@ -151,6 +159,7 @@ export default function App() {
             view: prev.ageGroup ? 'drawing' : 'age-selection' 
           }))}
           onDelete={handleDelete}
+          onBulkDelete={handleBulkDelete}
           onPrint={handlePrint}
           onGenerateMovie={handleGenerateMovie}
           onEdit={(drawing) => setState(prev => ({

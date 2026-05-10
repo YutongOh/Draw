@@ -48,5 +48,19 @@ export const PRESET_DRAWINGS: Drawing[] = [
     originalImage: inspirationUrl(26),
     refinedImage: inspirationUrl(26),
     prompt: '一幅充满想象力的儿童画'
+  },
+  {
+    id: 'preset-7',
+    timestamp: now - 7 * dayMs,
+    originalImage: inspirationUrl(3),
+    refinedImage: inspirationUrl(3),
+    prompt: '一幅充满想象力的儿童画'
+  },
+  {
+    id: 'preset-8',
+    timestamp: now - 8 * dayMs,
+    originalImage: inspirationUrl(12),
+    refinedImage: inspirationUrl(12),
+    prompt: '一幅充满想象力的儿童画'
   }
 ];

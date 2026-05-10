@@ -44,6 +44,9 @@ jobs:
           VITE_JIMENG_PROXY_URL: ${{ secrets.JIMENG_PROXY_URL }}
           # Demo only: direct browser key (WILL be exposed in built JS)
           VITE_JIMENG_API_KEY: ${{ secrets.JIMENG_API_KEY }}
+          # Demo only: Volcengine AK/SK direct signing (WILL be exposed in built JS)
+          VITE_VOLC_ACCESS_KEY_ID: ${{ secrets.VOLC_ACCESS_KEY_ID }}
+          VITE_VOLC_SECRET_ACCESS_KEY: ${{ secrets.VOLC_SECRET_ACCESS_KEY }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4

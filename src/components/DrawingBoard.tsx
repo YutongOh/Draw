@@ -14,7 +14,7 @@ import {
   X,
   Award
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, touchOrHoverOverlay } from '../lib/utils';
 import { AgeGroup, Drawing } from '../types';
 import { refineDrawing, getInspiration } from '../services/aiService';
 import { InspirationItem } from '../constants/inspirations';
@@ -460,8 +460,13 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
                       />
                     </div>
                     <button
+                      type="button"
+                      aria-label="关闭参考图"
                       onClick={() => setSelectedInspiration(null)}
-                      className="absolute -top-3 -right-3 w-10 h-10 bg-red-500/90 backdrop-blur-md text-[#ffffff] rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 active:scale-90 border border-white/20"
+                      className={cn(
+                        'absolute -top-3 -right-3 z-30 w-10 h-10 bg-red-500/90 backdrop-blur-md text-[#ffffff] rounded-full flex items-center justify-center shadow-lg transition-all hover:bg-red-600 active:scale-90 border border-white/20',
+                        touchOrHoverOverlay
+                      )}
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -510,12 +515,21 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
                           whileHover={{ y: -10 }}
                           className="relative group flex flex-col"
                         >
-                          <div className="relative overflow-hidden rounded-[32px] border-4 border-zinc-200 group-hover:border-dino-green/50 transition-all shadow-2xl">
+                          <div className="relative overflow-hidden rounded-[32px] border-4 border-zinc-200 [@media(hover:hover)_and_(pointer:fine)]:group-hover:border-dino-green/50 transition-all shadow-2xl">
                             <img src={img} className="w-full aspect-square object-cover" />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/40 backdrop-blur-[2px]">
+                            <div
+                              className={cn(
+                                'absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]',
+                                touchOrHoverOverlay
+                              )}
+                            >
                               <button 
+                                type="button"
                                 onClick={() => selectAiResult(img)}
-                                className="bg-white text-black px-8 py-4 rounded-2xl font-bold flex items-center gap-2 transform scale-90 group-hover:scale-100 transition-all shadow-2xl"
+                                className={cn(
+                                  'bg-white text-black px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-2xl',
+                                  'scale-100 [@media(hover:hover)_and_(pointer:fine)]:scale-90 [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-100 transition-transform'
+                                )}
                               >
                                 <Check className="w-6 h-6" /> 选这个
                               </button>
@@ -620,57 +634,84 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white/80 backdrop-blur-xl z-[60] flex items-end sm:items-center justify-center p-4"
-            onClick={() => setShowInspiration(false)}
+            className="fixed inset-0 bg-white/80 backdrop-blur-xl z-[60] flex items-end sm:items-center justify-center p-4 touch-manipulation"
+            onPointerDown={(e) => {
+              if (e.target === e.currentTarget) setShowInspiration(false);
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowInspiration(false);
+            }}
           >
             <motion.div 
               initial={{ y: 100, scale: 0.9 }}
               animate={{ y: 0, scale: 1 }}
               exit={{ y: 100, scale: 0.9 }}
-              className="bg-white/90 backdrop-blur-2xl border border-zinc-200 w-full max-w-2xl rounded-[48px] p-10 shadow-3xl"
-              onClick={e => e.stopPropagation()}
+              className="bg-white/90 backdrop-blur-2xl border border-zinc-200 w-full max-w-2xl max-h-[min(900px,90vh)] rounded-[48px] p-6 sm:p-10 shadow-3xl flex flex-col overflow-hidden"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-6 mb-10">
-                <div className="w-20 h-20 bg-dino-green/20 rounded-3xl flex items-center justify-center border border-dino-green/20">
-                  <Lightbulb className="w-10 h-10 text-dino-green" />
+              <div className="flex items-start justify-between gap-4 shrink-0 mb-6">
+                <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-dino-green/20 rounded-3xl flex items-center justify-center border border-dino-green/20 shrink-0">
+                    <Lightbulb className="w-8 h-8 sm:w-10 sm:h-10 text-dino-green" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-2xl sm:text-3xl font-display font-bold">灵感小锦囊</h3>
+                    <p className="text-sm sm:text-base text-zinc-500">不知道画什么？迪诺有主意！</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-3xl font-display font-bold">灵感小锦囊</h3>
-                  <p className="text-zinc-500">不知道画什么？迪诺有主意！</p>
-                </div>
+                <button
+                  type="button"
+                  aria-label="关闭"
+                  onClick={() => setShowInspiration(false)}
+                  className="shrink-0 p-3 sm:p-4 rounded-2xl bg-zinc-100 text-zinc-800 hover:bg-zinc-200 transition-colors border border-zinc-200 shadow-sm"
+                >
+                  <X className="w-6 h-6 sm:w-7 sm:h-7" />
+                </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-6 mb-10">
-                {inspirations.length > 0 && !isInspirationLoading ? inspirations.map((idea, i) => (
-                  <motion.button
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    onClick={() => {
-                       setSelectedInspiration(idea);
-                       setShowTrace(true);
-                       setShowInspiration(false);
-                    }}
-                    className="relative aspect-square rounded-xl overflow-hidden bg-white hover:ring-2 hover:ring-dino-green/50 transition-all group shadow-xl"
-                  >
-                    <img 
-                      src={getInspirationUrl(idea)}
-                      className="absolute inset-0 w-full h-full object-contain bg-white group-hover:scale-110 transition-transform duration-500"
-                      alt="灵感图片"
-                    />
-                  </motion.button>
-                )) : (
-                  <div className="col-span-3 py-20 text-center text-zinc-500 flex flex-col items-center gap-6">
-                    <div className="w-16 h-16 border-4 border-dino-green border-t-transparent rounded-full animate-spin" />
-                    <p className="text-lg font-medium">正在寻找好主意...</p>
-                  </div>
-                )}
+              <div className="overflow-y-auto min-h-0 flex-1 overscroll-contain">
+                <div className="grid grid-cols-3 gap-3 sm:gap-6 pb-2">
+                  {inspirations.length > 0 && !isInspirationLoading ? inspirations.map((idea, i) => (
+                    <motion.button
+                      key={i}
+                      type="button"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      whileHover={{ scale: 1.05, y: -5 }}
+                      onClick={() => {
+                         setSelectedInspiration(idea);
+                         setShowTrace(true);
+                         setShowInspiration(false);
+                      }}
+                      className="relative aspect-square rounded-xl overflow-hidden bg-white hover:ring-2 hover:ring-dino-green/50 transition-all group shadow-xl"
+                    >
+                      <img 
+                        src={getInspirationUrl(idea)}
+                        className="absolute inset-0 w-full h-full object-contain bg-white [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-110 transition-transform duration-500"
+                        alt="灵感图片"
+                      />
+                    </motion.button>
+                  )) : (
+                    <div className="col-span-3 py-16 sm:py-20 text-center text-zinc-500 flex flex-col items-center gap-6">
+                      <div className="w-16 h-16 border-4 border-dino-green border-t-transparent rounded-full animate-spin" />
+                      <p className="text-lg font-medium">正在寻找好主意...</p>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              <div className="flex gap-4">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 shrink-0 pt-6 mt-2 border-t border-zinc-100">
+                <button 
+                  type="button"
+                  onClick={() => setShowInspiration(false)}
+                  className="w-full sm:w-auto px-8 py-4 rounded-[24px] bg-white text-zinc-600 font-bold hover:bg-zinc-100 transition-all border border-zinc-200"
+                >
+                  关闭
+                </button>
                 <motion.button 
+                  type="button"
                   onClick={refreshInspirations}
                   disabled={isInspirationLoading}
                   animate={{ 
@@ -678,17 +719,11 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
                     scale: [1, 1.02, 1]
                   }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="flex-1 py-5 rounded-[24px] bg-dino-green text-black font-black text-lg flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-dino-green/20"
+                  className="flex-1 py-4 sm:py-5 rounded-[24px] bg-dino-green text-black font-black text-base sm:text-lg flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-dino-green/20"
                 >
                   <RotateCcw className={cn("w-6 h-6", isInspirationLoading && "animate-spin")} />
                   换一批主意
                 </motion.button>
-                <button 
-                  onClick={() => setShowInspiration(false)}
-                  className="px-8 py-5 rounded-[24px] bg-white text-zinc-500 font-bold hover:bg-zinc-100 transition-all border border-zinc-200"
-                >
-                  关闭
-                </button>
               </div>
             </motion.div>
           </motion.div>

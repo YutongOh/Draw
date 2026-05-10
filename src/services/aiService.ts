@@ -57,6 +57,33 @@ export async function speakEncouragement(text: string) {
 
 export async function refineDrawing(base64Image: string, prompt?: string) {
   try {
+    const volcAk = import.meta.env.VITE_VOLC_ACCESS_KEY_ID;
+    const volcSk = import.meta.env.VITE_VOLC_SECRET_ACCESS_KEY;
+    if (volcAk && volcSk) {
+      const levels: Array<{ level: 'low' | 'mid' | 'high'; scale: number }> = [
+        { level: 'low', scale: 0.4 },
+        { level: 'mid', scale: 0.65 },
+        { level: 'high', scale: 0.9 },
+      ];
+      const results = await Promise.all(
+        levels.map(async (lv) => {
+          const mergedPrompt = [
+            '这是一幅儿童绘画，请进行儿童友好的高质量美化。',
+            lv.level === 'low' ? '重绘程度：低，尽量保留原始笔触。' : lv.level === 'mid' ? '重绘程度：中，适度增强细节与配色。' : '重绘程度：高，显著提升质感与表现力。',
+            prompt || '',
+          ].join('\n');
+          return await refineWithVolcJimeng({
+            accessKeyId: volcAk,
+            secretAccessKey: volcSk,
+            imageDataUrl: base64Image,
+            prompt: mergedPrompt,
+            scale: lv.scale,
+          });
+        }),
+      );
+      if (results.length) return results;
+    }
+
     const proxyBase = import.meta.env.VITE_JIMENG_PROXY_URL ?? import.meta.env.VITE_AI_PROXY_URL;
     if (proxyBase) {
       const res = await fetch(`${proxyBase.replace(/\/+$/, '')}/refine`, {
@@ -191,6 +218,156 @@ export async function refineDrawing(base64Image: string, prompt?: string) {
     console.error("AI Refinement Error:", error);
     return null;
   }
+}
+
+type VolcParams = {
+  accessKeyId: string;
+  secretAccessKey: string;
+  imageDataUrl: string;
+  prompt: string;
+  scale: number;
+};
+
+const VOLC_HOST = 'visual.volcengineapi.com';
+const VOLC_REGION = 'cn-north-1';
+const VOLC_SERVICE = 'cv';
+const VOLC_REQ_KEY = 'jimeng_t2i_v40';
+
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function utf8(input: string): Uint8Array {
+  return new TextEncoder().encode(input);
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', utf8(input));
+  return toHex(digest);
+}
+
+async function hmacSha256(key: Uint8Array, data: string): Promise<ArrayBuffer> {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  return await crypto.subtle.sign('HMAC', cryptoKey, utf8(data));
+}
+
+function toUint8(buffer: ArrayBuffer): Uint8Array {
+  return new Uint8Array(buffer);
+}
+
+function amzDate(now = new Date()): string {
+  const yyyy = now.getUTCFullYear().toString();
+  const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(now.getUTCDate()).padStart(2, '0');
+  const hh = String(now.getUTCHours()).padStart(2, '0');
+  const mi = String(now.getUTCMinutes()).padStart(2, '0');
+  const ss = String(now.getUTCSeconds()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}T${hh}${mi}${ss}Z`;
+}
+
+async function volcSignedPost(params: {
+  ak: string;
+  sk: string;
+  action: string;
+  bodyObj: unknown;
+}): Promise<any> {
+  const date = amzDate();
+  const shortDate = date.slice(0, 8);
+  const canonicalQuery = `Action=${encodeURIComponent(params.action)}&Version=2022-08-31`;
+  const payload = JSON.stringify(params.bodyObj);
+  const payloadHash = await sha256Hex(payload);
+
+  const canonicalHeaders =
+    `content-type:application/json\n` +
+    `host:${VOLC_HOST}\n` +
+    `x-content-sha256:${payloadHash}\n` +
+    `x-date:${date}\n`;
+  const signedHeaders = 'content-type;host;x-content-sha256;x-date';
+  const canonicalRequest =
+    `POST\n/\n${canonicalQuery}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+
+  const credentialScope = `${shortDate}/${VOLC_REGION}/${VOLC_SERVICE}/request`;
+  const stringToSign =
+    `HMAC-SHA256\n${date}\n${credentialScope}\n${await sha256Hex(canonicalRequest)}`;
+
+  const kDate = toUint8(await hmacSha256(utf8(`VOLC${params.sk}`), shortDate));
+  const kRegion = toUint8(await hmacSha256(kDate, VOLC_REGION));
+  const kService = toUint8(await hmacSha256(kRegion, VOLC_SERVICE));
+  const kSigning = toUint8(await hmacSha256(kService, 'request'));
+  const signature = toHex(await hmacSha256(kSigning, stringToSign));
+
+  const authorization =
+    `HMAC-SHA256 Credential=${params.ak}/${credentialScope}, ` +
+    `SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const res = await fetch(`https://${VOLC_HOST}/?${canonicalQuery}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Date': date,
+      'X-Content-Sha256': payloadHash,
+      Authorization: authorization,
+    },
+    body: payload,
+  });
+  const text = await res.text();
+  let json: any = null;
+  try { json = JSON.parse(text); } catch {}
+  if (!res.ok) {
+    const msg = json?.ResponseMetadata?.Error?.Message || json?.message || text;
+    throw new Error(`Volc HTTP ${res.status}: ${String(msg).slice(0, 300)}`);
+  }
+  return json;
+}
+
+async function refineWithVolcJimeng(input: VolcParams): Promise<string> {
+  const submit = await volcSignedPost({
+    ak: input.accessKeyId,
+    sk: input.secretAccessKey,
+    action: 'CVSync2AsyncSubmitTask',
+    bodyObj: {
+      req_key: VOLC_REQ_KEY,
+      image_urls: [input.imageDataUrl],
+      prompt: input.prompt,
+      scale: input.scale,
+      width: 1024,
+      height: 1024,
+    },
+  });
+
+  const code = submit?.code;
+  const taskId = submit?.data?.task_id as string | undefined;
+  if (code !== 10000 || !taskId) {
+    throw new Error(submit?.message || 'Volc submit failed');
+  }
+
+  const started = Date.now();
+  while (Date.now() - started < 120000) {
+    const result = await volcSignedPost({
+      ak: input.accessKeyId,
+      sk: input.secretAccessKey,
+      action: 'CVSync2AsyncGetResult',
+      bodyObj: {
+        req_key: VOLC_REQ_KEY,
+        task_id: taskId,
+        req_json: JSON.stringify({ return_url: true }),
+      },
+    });
+    if (result?.code !== 10000) {
+      throw new Error(result?.message || 'Volc get result failed');
+    }
+    const status = result?.data?.status as string | undefined;
+    const urls = result?.data?.image_urls as string[] | undefined;
+    if (status === 'done' && Array.isArray(urls) && urls[0]) return urls[0];
+    await new Promise(r => setTimeout(r, 1200));
+  }
+  throw new Error('Volc task timeout');
 }
 
 export async function getInspiration(ageGroup?: string): Promise<InspirationItem[]> {
