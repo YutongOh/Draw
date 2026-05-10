@@ -17,7 +17,7 @@ import {
 import { cn, touchOrHoverOverlay } from '../lib/utils';
 import { AgeGroup, Drawing } from '../types';
 import { refineDrawing, getInspiration } from '../services/aiService';
-import { InspirationItem } from '../constants/inspirations';
+import { getInspirationImageUrl, InspirationItem } from '../constants/inspirations';
 import { IPCharacter } from './IPCharacter';
 import { BadgePopup } from './BadgePopup';
 import { BADGES, Badge } from '../constants/badges';
@@ -40,7 +40,6 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
   onSave 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const baseUrl = import.meta.env.BASE_URL;
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#4ade80');
   const [brushSize, setBrushSize] = useState(8);
@@ -63,7 +62,6 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
   const hasInspiration = ageGroup === '4-7';
   const hasPrint = true; // Available for all age groups
 
-  const getInspirationUrl = (item: InspirationItem) => `${baseUrl}inspirations/inspiration-${item.id.toString().padStart(2, '0')}.png`;
 
   useEffect(() => {
     if (selectedInspiration) {
@@ -434,7 +432,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
                   className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
                 >
                   <img 
-                    src={getInspirationUrl(selectedInspiration)}
+                    src={getInspirationImageUrl(selectedInspiration)}
                     className="h-[80%] aspect-square object-contain"
                     alt="临摹底图"
                   />
@@ -454,7 +452,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
                   <div className="relative">
                     <div className="w-28 h-28 md:w-40 md:h-40 rounded-xl overflow-hidden shadow-2xl bg-white relative">
                       <img 
-                        src={getInspirationUrl(selectedInspiration)}
+                        src={getInspirationImageUrl(selectedInspiration)}
                         className="absolute inset-0 w-full h-full object-contain bg-white"
                         alt="参考图片"
                       />
@@ -688,7 +686,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({
                       className="relative aspect-square rounded-xl overflow-hidden bg-white hover:ring-2 hover:ring-dino-green/50 transition-all group shadow-xl"
                     >
                       <img 
-                        src={getInspirationUrl(idea)}
+                        src={getInspirationImageUrl(idea)}
                         className="absolute inset-0 w-full h-full object-contain bg-white [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-110 transition-transform duration-500"
                         alt="灵感图片"
                       />

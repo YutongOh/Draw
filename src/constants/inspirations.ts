@@ -32,3 +32,12 @@ export const PRESET_INSPIRATIONS: InspirationItem[] = [
   { id: 29, title: '蜜蜂' },
   { id: 33, title: '小熊' }
 ];
+
+/** 与灵感锦囊网格使用同一 PNG 路径（`/BASE/inspirations/inspiration-XX.png`）。 */
+export function getInspirationImageUrl(item: Pick<InspirationItem, 'id'> | number): string {
+  const id = typeof item === 'number' ? item : item.id;
+  return `${baseUrl}inspirations/inspiration-${id.toString().padStart(2, '0')}.png`;
+}
+
+/** 作品库初始示例用的前 6 条锦囊素材（与列表顺序一致）。 */
+export const GALLERY_SEED_INSPIRATIONS = PRESET_INSPIRATIONS.slice(0, 6);

@@ -10,10 +10,25 @@ import { PRESET_DRAWINGS } from './constants/presets';
 
 function migrateAssetUrl(url: unknown): string | undefined {
   if (typeof url !== 'string') return undefined;
-  if (!url.startsWith('/')) return url; // already relative/base-prefixed, data:, http(s), etc.
-  if (url.startsWith('//')) return url;
-  const baseUrl = import.meta.env.BASE_URL;
-  return `${baseUrl}${url.replace(/^\/+/, '')}`;
+  let s = url;
+  if (s.startsWith('data:') || /^https?:\/\//i.test(s) || s.startsWith('//'))
+    return s;
+
+  let baseUrl = String(import.meta.env.BASE_URL ?? '/');
+  if (!baseUrl.endsWith('/')) baseUrl = `${baseUrl}/`;
+  const trimmedBase = baseUrl.replace(/\/+$/, '');
+
+  // Bugfix: URLs already rooted at BASE_URL (e.g. /Draw/inspirations/...) must not get base prepended twice.
+  if (trimmedBase && (s === trimmedBase || s.startsWith(`${trimmedBase}/`))) return s;
+
+  const dup = `${trimmedBase}/${trimmedBase.replace(/^\//, '')}/`;
+  if (s.startsWith(dup)) {
+    s = `${baseUrl}${s.slice(dup.length)}`;
+  }
+
+  // Site-root legacy paths /inspirations/... → under GitHub Pages subpath BASE_URL.
+  if (s.startsWith('/')) return `${baseUrl}${s.replace(/^\/+/, '')}`;
+  return s;
 }
 
 function migrateDrawing(d: unknown): Drawing | null {
